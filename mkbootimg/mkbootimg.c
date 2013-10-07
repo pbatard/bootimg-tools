@@ -29,28 +29,29 @@ static void *load_file(const char *fn, unsigned *_sz)
 {
     char *data;
     int sz;
-    int fd;
+    FILE *fd;
 
     data = 0;
-    fd = open(fn, O_RDONLY);
-    if(fd < 0) return 0;
+    fd = fopen(fn, "rb");
+    if(fd == 0) return 0;
 
-    sz = lseek(fd, 0, SEEK_END);
+    if(fseek(fd, 0, SEEK_END) != 0) goto oops;
+    sz = ftell(fd);
     if(sz < 0) goto oops;
 
-    if(lseek(fd, 0, SEEK_SET) != 0) goto oops;
+    if(fseek(fd, 0, SEEK_SET) != 0) goto oops;
 
     data = (char*) malloc(sz);
     if(data == 0) goto oops;
 
-    if(read(fd, data, sz) != sz) goto oops;
-    close(fd);
+    if(fread(data, 1, sz, fd) != sz) goto oops;
+    fclose(fd);
 
     if(_sz) *_sz = sz;
     return data;
 
 oops:
-    close(fd);
+    fclose(fd);
     if(data != 0) free(data);
     return 0;
 }
@@ -74,7 +75,7 @@ int usage(void)
 
 static unsigned char padding[16384] = { 0, };
 
-int write_padding(int fd, unsigned pagesize, unsigned itemsize)
+int write_padding(FILE *fd, unsigned pagesize, unsigned itemsize)
 {
     unsigned pagemask = pagesize - 1;
     unsigned count;
@@ -85,7 +86,7 @@ int write_padding(int fd, unsigned pagesize, unsigned itemsize)
 
     count = pagesize - (itemsize & pagemask);
 
-    if(write(fd, padding, count) != count) {
+    if(fwrite(padding, 1, count, fd) != count) {
         return -1;
     } else {
         return 0;
@@ -106,7 +107,7 @@ int main(int argc, char **argv)
     char *bootimg = 0;
     char *board = "";
     unsigned pagesize = 2048;
-    int fd;
+    FILE *fd;
     SHA_CTX ctx;
     uint8_t* sha;
     unsigned base           = 0x10000000;
@@ -246,23 +247,23 @@ int main(int argc, char **argv)
     memcpy(hdr.id, sha,
            SHA_DIGEST_SIZE > sizeof(hdr.id) ? sizeof(hdr.id) : SHA_DIGEST_SIZE);
 
-    fd = open(bootimg, O_CREAT | O_TRUNC | O_WRONLY, 0644);
-    if(fd < 0) {
+    fd = fopen(bootimg, "wb");
+    if(fd == 0) {
         fprintf(stderr,"error: could not create '%s'\n", bootimg);
         return 1;
     }
 
-    if(write(fd, &hdr, sizeof(hdr)) != sizeof(hdr)) goto fail;
+    if(fwrite(&hdr, 1, sizeof(hdr), fd) != sizeof(hdr)) goto fail;
     if(write_padding(fd, pagesize, sizeof(hdr))) goto fail;
 
-    if(write(fd, kernel_data, hdr.kernel_size) != hdr.kernel_size) goto fail;
+    if(fwrite(kernel_data, 1, hdr.kernel_size, fd) != hdr.kernel_size) goto fail;
     if(write_padding(fd, pagesize, hdr.kernel_size)) goto fail;
 
-    if(write(fd, ramdisk_data, hdr.ramdisk_size) != hdr.ramdisk_size) goto fail;
+    if(fwrite(ramdisk_data, 1, hdr.ramdisk_size, fd) != hdr.ramdisk_size) goto fail;
     if(write_padding(fd, pagesize, hdr.ramdisk_size)) goto fail;
 
     if(second_data) {
-        if(write(fd, second_data, hdr.second_size) != hdr.second_size) goto fail;
+        if(fwrite(second_data, 1, hdr.second_size, fd) != hdr.second_size) goto fail;
         if(write_padding(fd, pagesize, hdr.ramdisk_size)) goto fail;
     }
 
@@ -270,7 +271,7 @@ int main(int argc, char **argv)
 
 fail:
     unlink(bootimg);
-    close(fd);
+    fclose(fd);
     fprintf(stderr,"error: failed writing '%s': %s\n", bootimg,
             strerror(errno));
     return 1;
