@@ -5,5 +5,5 @@
 *.diff
 *~
 mkbootimg/mkbootimg
-mkbootimg/upkbootimg
-mkbootfs/mkbootfs
+mkbootimg/unmkbootimg
+cpio/mkbootfs

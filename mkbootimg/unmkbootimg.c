@@ -1,4 +1,4 @@
-/* tools/mkbootimg/upkbootimg.c
+/* tools/mkbootimg/unmkbootimg.c
 **
 ** Copyright 2013, Pete Batard <pete@akeo.ie>
 **
@@ -71,7 +71,7 @@ static unsigned save_file(const char *fn, const void* data, const unsigned sz)
 
 int usage(void)
 {
-    fprintf(stderr,"usage: upkbootimg\n"
+    fprintf(stderr,"usage: unmkbootimg\n"
             "       [ --kernel <filename> ]\n"
             "       [ --ramdisk <filename> ]\n"
             "       [ --second <2ndbootloader-filename> ]\n"
