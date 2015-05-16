@@ -78,8 +78,9 @@ static void fix_stat(const char *path, struct stat *s)
         s->st_mode = empty_path_config->mode | (s->st_mode & ~07777);
     } else {
         // Use the compiled-in fs_config() function.
-
-        fs_config(path, S_ISDIR(s->st_mode), &s->st_uid, &s->st_gid, &s->st_mode, &capabilities);
+        unsigned st_mode = s->st_mode;
+        fs_config(path, S_ISDIR(s->st_mode), &s->st_uid, &s->st_gid, &st_mode, &capabilities);
+        s->st_mode = (typeof(s->st_mode)) st_mode;
     }
 }
 
@@ -220,6 +221,8 @@ static void _archive_dir(char *in, char *out, int ilen, int olen)
         free(names[i]);
     }
     free(names);
+
+    closedir(d);
 }
 
 static void _archive(char *in, char *out, int ilen, int olen)

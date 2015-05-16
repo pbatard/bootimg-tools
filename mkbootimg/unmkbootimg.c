@@ -43,7 +43,7 @@ static void *load_file(const char *fn, unsigned *_sz)
     data = (char*) malloc(sz);
     if(data == 0) goto oops;
 
-    if(fread(data, 1, sz, fd) != sz) goto oops;
+    if(fread(data, 1, sz, fd) != (size_t) sz) goto oops;
     fclose(fd);
 
     if(_sz) *_sz = sz;
